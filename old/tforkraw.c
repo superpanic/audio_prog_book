@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sndfile.h>
 
 #ifndef M_PI
 #define M_PI (3.141592654)
@@ -31,8 +32,12 @@ int main(int argc, char* argv[]) {
 	float fsamp;
 	int16_t ssamp;
 
+        char  buffer [128] ;
+        sf_command (NULL, SFC_GET_LIB_VERSION, buffer, sizeof (buffer)) ;
+	printf("%s\n", buffer);
+
 	if(argc != ARG_NARGS) {
-		printf("usage: tforkraw outfile.raw dur freq srate amp isfloat\n");
+		printf("usage: tforkraw outfile. raw dur freq srate amp isfloat\n");
 		return 1;
 	}
 	dur = atof(argv[ARG_DUR]);
