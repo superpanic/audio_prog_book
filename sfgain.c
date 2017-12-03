@@ -4,28 +4,36 @@
 #include <portsf.h>
 #include <math.h>
 
-enum  {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_NARGS};
+enum  {ARG_PROGNAME, ARG_GAIN, ARG_INFILE, ARG_OUTFILE, ARG_NARGS};
 
 int main(int argc, char* argv[]) {
 	PSF_PROPS props; // defined in portsf.H
+	float gain;
 	long framesread, totalread;
 	int ifd = -1, ofd = -1; // in file descriptor, out file descriptor
 	int error = 0;
+	int snd_size;
+	int i;
 	psf_format outformat = PSF_FMT_UNKNOWN;
 	PSF_CHPEAK* peaks = NULL; // array of peaks
 	float* frame = NULL;
 
-	printf("SF2FLOAT: convert soundfile to floats format\n");
+	printf("SFGAIN: copy and change level of a soundfile\n");
 
 	if(argc < ARG_NARGS) {
 		printf("error: insufficient arguments.\n"
-		       "usage:\n\ttsf2float infile outfile\n");
+		       "usage: %s gain infile outfile\n", argv[ARG_PROGNAME]);
 		return 1;
 	}
-
 	// start up portsf
 	if(psf_init()) {
 		printf("unable to start portsf\n");
+		return 1;
+	}
+
+	gain = (float) atof(argv[ARG_GAIN]);
+	if( gain < 0 ) {
+		printf("error: gain value %f should not be negative\n", gain);
 		return 1;
 	}
 
@@ -37,11 +45,6 @@ int main(int argc, char* argv[]) {
 	}
 
 	/* we now have a resource, so we use goto hereafter on hitting an error */
-	// tell user if source file is already floats
-	if(props.samptype == PSF_SAMP_IEEE_FLOAT) {
-		printf("info: infile is already in floats format\n");
-	}
-	props.samptype = PSF_SAMP_IEEE_FLOAT;
 
 	// check outfile extension is one we know about
 	outformat = psf_getFormatExt(argv[ARG_OUTFILE]);
@@ -80,9 +83,7 @@ int main(int argc, char* argv[]) {
 
 	printf("copying ...\n");
 
-	int s = psf_sndSize(ifd);
-	// printf("size: %i\n", s);
-
+	snd_size = psf_sndSize(ifd);
 
 	// single frame loop to do copy, report any errors
 	framesread = psf_sndReadFloatFrames(ifd, frame, 1);
@@ -90,17 +91,18 @@ int main(int argc, char* argv[]) {
 
 	while (framesread == 1) {
 		totalread++;
+		// do any processing here!
+		for(i=0; i<props.chans; i++) {
+			frame[i] *= gain;
+		}
 		if(psf_sndWriteFloatFrames(ofd, frame, 1) != 1) {
 			printf("error: failed to write outfile\n");
 			error++;
 			break;
 		}
-
-		if(totalread%1000 == 0) {
-			printf("\r%i%%", (int)(((float)totalread/(float)s)*100.0)+1);
+		if(totalread % 1000 == 0) {
+			printf("\r%i%%", (int)(((float)totalread/(float)snd_size)*100.0)+1);
 		}
-
-		// do any processing here!
 		framesread = psf_sndReadFloatFrames(ifd,frame,1);
 	}
 

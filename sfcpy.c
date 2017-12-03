@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 
 	if(argc < ARG_NARGS) {
 		printf("error: insufficient arguments.\n"
-		       "usage:\n\ttsf2float infile outfile\n");
+		       "usage:\n\t%s infile outfile\n", argv[ARG_PROGNAME]);
 		return 1;
 	}
 
@@ -37,11 +37,6 @@ int main(int argc, char* argv[]) {
 	}
 
 	/* we now have a resource, so we use goto hereafter on hitting an error */
-	// tell user if source file is already floats
-	if(props.samptype == PSF_SAMP_IEEE_FLOAT) {
-		printf("info: infile is already in floats format\n");
-	}
-	props.samptype = PSF_SAMP_IEEE_FLOAT;
 
 	// check outfile extension is one we know about
 	outformat = psf_getFormatExt(argv[ARG_OUTFILE]);
