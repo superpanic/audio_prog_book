@@ -53,7 +53,6 @@ BREAKPOINT maxpoint(const BREAKPOINT* points, unsigned long npoints) {
 	BREAKPOINT point;
 	point.time = points[0].time;
 	point.value = points[0].value;
-
 	for(i=1; i<npoints; i++) {
 		if(point.value < points[i].value) {
 			point.value = points[i].value;
@@ -61,6 +60,40 @@ BREAKPOINT maxpoint(const BREAKPOINT* points, unsigned long npoints) {
 		}
 	}
 	return point;
+}
+
+BREAKPOINT minpoint(const BREAKPOINT* points, unsigned long npoints) {
+	int i;
+	BREAKPOINT point;
+	point.time = points[0].time;
+	point.value = points[0].value;
+	for(i=1; i<npoints; i++) {
+		if(point.value > points[i].value) {
+			point.value = points[i].value;
+			point.time = points[i].time;
+		}
+	}
+	return point;
+}
+
+void maxmin(const BREAKPOINT* points, unsigned long npoints, BREAKPOINT mami[2]) {
+	int i;
+	// max
+	mami[0].time = points[0].time;
+	mami[0].value = points[0].value;
+	// min
+	mami[1].time = points[0].time;
+	mami[1].value = points[0].value;
+	for(i=1; i<npoints; i++) {
+		if(mami[0].value < points[i].value) {
+			mami[0].value = points[i].value;
+			mami[0].time = points[i].time;
+		}
+		if(mami[1].value > points[i].value) {
+			mami[1].value = points[i].value;
+			mami[1].time = points[i].time;
+		}
+	}
 }
 
 int inrange(const BREAKPOINT* points, double minval, double maxval, unsigned long npoints) {
@@ -78,7 +111,7 @@ int inrange(const BREAKPOINT* points, double minval, double maxval, unsigned lon
 double val_at_brktime(const BREAKPOINT* points, unsigned long npoints, double time) {
 	unsigned long i;
 	BREAKPOINT left, right;
-	double frac, val, width:
+	double frac, val, width;
 	// scan until we find a span containing our time
 	for(i=1; i<npoints; i++) {
 		if(time <= points[i].time) break;
@@ -87,7 +120,7 @@ double val_at_brktime(const BREAKPOINT* points, unsigned long npoints, double ti
 	if(i == npoints) {
 		return points[i-1].value;
 	}
-	left = points[i-1];
+	left = points[i-1]; // safe because we start loop at 1
 	right = points[i];
 	// check for instant jump (two points with same time)
 	width = right.time - left.time;

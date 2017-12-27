@@ -14,7 +14,20 @@ typedef struct panpos {
 enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BRKFILE, ARG_NARGS};
 
 PANPOS simplepan(double position);
+PANPOS constpowerpan(double position);
 double max_samp(float* buf, unsigned long block_size);
+
+PANPOS constpowerpan(double position) {
+	PANPOS pos;
+	const double piovr2 = 4.0 * atan(1.0) * 0.5;
+	const double root2ovr2 = sqrt(2.0) * 0.5;
+	double thispos = position * piovr2;
+	double cangle = cos(thispos * 0.5);
+	double sangle = sin(thispos * 0.5);
+	pos.left = root2ovr2 * (cangle - sangle);
+	pos.right = root2ovr2 * (cangle + sangle);
+	return pos;
+}
 
 PANPOS simplepan(double position) {
 	struct panpos pos;
@@ -59,6 +72,7 @@ int main(int argc, char *argv[]) {
 	FILE *fp = NULL;
 	unsigned long size;
 	BREAKPOINT *points = NULL;
+	double timeincr, sampletime, stereopos;
 	//
 
 	printf("sfpan: pan the sound\n");
@@ -116,11 +130,17 @@ int main(int argc, char *argv[]) {
 	}
 
 	if(!inrange(points, -1.0, 1.0, size)) {
-		printf("error: values out of range -1 and 1\n");
+		printf("error: values out of range -1 and 1 in %s\n", argv[ARG_BRKFILE]);
+		printf("maxpoint: %lf\n", maxpoint(points, size).value);
+		printf("minpoint: %lf\n", minpoint(points, size).value);
+		// exercise 2.3.3, create a function that returns both max and min BREAKPOINTS
+		BREAKPOINT mami[2];
+		maxmin(points, size, mami);
+		printf("maxpoint: %lf at: %lf, minpoint: %lf at: %lf\n", mami[0].value, mami[0].time, mami[1].value, mami[1].time);
+		//
 		error++;
 		goto exit;
 	}
-
 
 	// start up portsf
 	if( psf_init() ) {
@@ -177,14 +197,20 @@ int main(int argc, char *argv[]) {
 	printf("sound size: %i\n", snd_size);
 
 
-	thispos = simplepan(position);
+	timeincr = 1.0 / props.srate;
+	sampletime = 0.0;
 
-	printf("left: %lf right: %lf\n", thispos.left, thispos.right );
+//	thispos = simplepan(position);
+//	printf("left: %lf right: %lf\n", thispos.left, thispos.right );
 
 	while ( (framesread = psf_sndReadFloatFrames(ifd, inframe, nframes)) > 0 ) {
+
 		for(i=0, out_i=0; i<framesread; i++) {
+			stereopos = val_at_brktime(points, size, sampletime);
+			thispos = constpowerpan(stereopos);
 			outframe[out_i++] = (float)(inframe[i] * thispos.left);
 			outframe[out_i++] = (float)(inframe[i] * thispos.right);
+			sampletime += timeincr;
 		}
 
 		if( psf_sndWriteFloatFrames(ofd, outframe, framesread) != framesread ) {
@@ -198,11 +224,9 @@ int main(int argc, char *argv[]) {
 
 
 exit:	// do all cleanup
-
+	printf("exit, cleaning up\n");
 	if(fp) fclose(fp);
 	if(points) free(points);
-
-	printf("exit, cleaning up\n");
 	if(ifd >= 0) psf_sndClose(ifd);
 	if(inframe) free(inframe);
 	if(ofd >= 0) psf_sndClose(ofd);
