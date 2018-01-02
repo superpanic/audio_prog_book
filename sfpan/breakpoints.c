@@ -30,6 +30,7 @@ BREAKPOINT* get_breakpoints(FILE* fp, unsigned long* psize) {
 		}
 		lasttime = points[npoints].time;
 		if(++npoints == size) {
+			// increase size of memory
 			BREAKPOINT* tmp;
 			size += npoints;
 			tmp = (BREAKPOINT*)realloc(points, sizeof(BREAKPOINT) * size);

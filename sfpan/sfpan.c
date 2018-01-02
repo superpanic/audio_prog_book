@@ -3,19 +3,10 @@
 #include <portsf.h>
 #include <math.h>
 #include <breakpoints.h>
+#include "sfpan.h"
 
 #define NFRAMES (1024)
-
-typedef struct panpos {
-	double left;
-	double right;
-} PANPOS;
-
 enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BRKFILE, ARG_NARGS};
-
-PANPOS simplepan(double position);
-PANPOS constpowerpan(double position);
-double max_samp(float* buf, unsigned long block_size);
 
 PANPOS constpowerpan(double position) {
 	PANPOS pos;
@@ -30,7 +21,7 @@ PANPOS constpowerpan(double position) {
 }
 
 PANPOS simplepan(double position) {
-	struct panpos pos;
+	PANPOS pos;
 	position *= 0.5; // shift position from -1 to 1 -> -0.5-1.5
 	pos.left = position - 0.5;
 	pos.right = position + 0.5;
@@ -200,13 +191,38 @@ int main(int argc, char *argv[]) {
 	timeincr = 1.0 / props.srate;
 	sampletime = 0.0;
 
+	// replace val_at_brktime
+	unsigned long timestep = 1;
+	BREAKPOINT leftbrk, rightbrk;
+	double widthbrk, fracbrk;
+	//
+
 //	thispos = simplepan(position);
 //	printf("left: %lf right: %lf\n", thispos.left, thispos.right );
 
 	while ( (framesread = psf_sndReadFloatFrames(ifd, inframe, nframes)) > 0 ) {
 
 		for(i=0, out_i=0; i<framesread; i++) {
-			stereopos = val_at_brktime(points, size, sampletime);
+
+			// replacing val_at_brktime
+			if(points[timestep].time <= sampletime) timestep++;
+			if(timestep >= size) {
+				stereopos = points[size-1].value;
+			} else {
+				leftbrk = points[timestep-1];
+				rightbrk = points[timestep];
+				widthbrk = rightbrk.time - leftbrk.time;
+				if(widthbrk == 0.0) {
+					stereopos = rightbrk.time;
+				} else {
+					fracbrk = (sampletime - leftbrk.time) / widthbrk;
+					stereopos = leftbrk.value + ((rightbrk.value-leftbrk.value) * fracbrk);
+				}
+			}
+			//
+
+			// stereopos = val_at_brktime(points, size, sampletime);
+
 			thispos = constpowerpan(stereopos);
 			outframe[out_i++] = (float)(inframe[i] * thispos.left);
 			outframe[out_i++] = (float)(inframe[i] * thispos.right);
