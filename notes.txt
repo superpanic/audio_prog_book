@@ -1,0 +1,5 @@
+gnuplot examples:
+
+gnuplot
+set terminal qt
+plot "infile.data" title "Audio data" with linespoints
