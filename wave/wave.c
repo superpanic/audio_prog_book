@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 void oscil_init(OSCIL *osc, uint32_t srate) {
 	if(osc == NULL) return;
@@ -31,15 +33,14 @@ OSCIL* new_oscil(uint32_t srate) {
 	return p_osc;
 }
 
-
 double sinetick(OSCIL *p_osc, double freq) {
 	/* use like this */
 	//for(i=0;i<nframes;i++)
 	//	outframe[i] = sinetick(osc,freq); /* modify freq ad lib */
-
 	double val;
 	val = sin(p_osc->curphase);
 	if(p_osc->curfreq != freq) {
+		// set only once!
 		p_osc->curfreq = freq;
 		p_osc->incr = p_osc->twopiovrsr * freq;
 	}
@@ -48,5 +49,25 @@ double sinetick(OSCIL *p_osc, double freq) {
 		p_osc->curphase -= TWOPI;
 	if(p_osc->curphase < 0.0)
 		p_osc->curphase += TWOPI;
+	return val;
+}
+
+double sqtick(OSCIL *p_osc, double freq) {
+	double val;
+	if(p_osc->curfreq != freq) {
+		// set only once!
+		p_osc->curfreq = freq;
+		p_osc->incr = p_osc->twopiovrsr * freq;
+	}
+	// flip if under or above one pi
+	if(p_osc->curphase <= M_PI) {
+		val = 1.0;
+	} else {
+		val = -1.0;
+	}
+	p_osc->curphase += p_osc->incr;
+	if(p_osc->curphase >= TWOPI) p_osc->curphase -= TWOPI;
+	if(p_osc->curphase < 0.0) p_osc->curphase += TWOPI;
+	
 	return val;
 }

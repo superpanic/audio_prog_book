@@ -7,7 +7,8 @@
 
 #define NFRAMES (1024)
 
-enum { ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SRATE, ARG_AMP, ARG_FREQ, ARG_NARGS };
+enum { ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SRATE, ARG_AMP, ARG_FREQ, ARG_SHAPE, ARG_NARGS };
+enum { SINE, SQUARE, SAW_UP, SAW_DOWN, TRIANGLE };
 
 int main(int argc, char *argv[]) {
 
@@ -31,11 +32,15 @@ int main(int argc, char *argv[]) {
 	uint32_t outframes; // frames written to file
 	uint32_t remainder; // remainder in last frame buffer
 
+	uint8_t shape = SINE;
+
 	// oscilator
 	OSCIL *p_osc; // sinus oscilator properties
 
-	if(argc != ARG_NARGS) {
-		printf("\terror: wrong number of arguments, got %i arguments, expected %i.\n\tusage:\n\t%s outfile duration samplerate amplification frequency\n\taborting...\n", argc-1, ARG_NARGS-1, argv[ARG_PROGNAME]);
+	if(argc < ARG_NARGS-1) {
+		printf("\terror: wrong number of arguments, got %i arguments, expected %i.\n"
+			"\tusage:\n"
+			"\t%s outfile duration samplerate amplification frequency [shape]\n\taborting...\n", argc-1, ARG_NARGS-2, argv[ARG_PROGNAME]);
 		err++;
 		return err;
 	}
@@ -66,6 +71,19 @@ int main(int argc, char *argv[]) {
 		printf("\terror: got freq value at %lf. needs to be higher than 0.\n\taborting...\n", freq);
 		err++;
 		return err;
+	}
+
+	// check if we got optional arguments
+	if(argc > ARG_NARGS-1) {
+		printf("shape: %s\n", argv[ARG_SHAPE]);
+		if( strcmp(argv[ARG_SHAPE],"sine") )
+			shape = SINE;
+		if( strcmp(argv[ARG_SHAPE],"square") )
+			shape = SQUARE;
+		if( strcmp(argv[ARG_SHAPE],"saw") )
+			shape = SAW_UP;
+		if( strcmp(argv[ARG_SHAPE],"triangle") )
+			shape = TRIANGLE;
 	}
 
 	// start up portsf
