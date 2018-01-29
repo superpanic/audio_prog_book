@@ -3,12 +3,13 @@
 #include <portsf.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "wave.h"
 
 #define NFRAMES (1024)
 
 enum { ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SRATE, ARG_AMP, ARG_FREQ, ARG_SHAPE, ARG_NARGS };
-enum { SINE, SQUARE, SAW_UP, SAW_DOWN, TRIANGLE };
+enum { SINE, SQUARE, RISING, FALLING, TRIANGLE };
 
 int main(int argc, char *argv[]) {
 
@@ -75,15 +76,11 @@ int main(int argc, char *argv[]) {
 
 	// check if we got optional arguments
 	if(argc > ARG_NARGS-1) {
-		printf("shape: %s\n", argv[ARG_SHAPE]);
-		if( strcmp(argv[ARG_SHAPE],"sine") )
-			shape = SINE;
-		if( strcmp(argv[ARG_SHAPE],"square") )
-			shape = SQUARE;
-		if( strcmp(argv[ARG_SHAPE],"saw") )
-			shape = SAW_UP;
-		if( strcmp(argv[ARG_SHAPE],"triangle") )
-			shape = TRIANGLE;
+		if( strcmp(argv[ARG_SHAPE],"sine") == 0) shape = SINE;
+		else if( strcmp(argv[ARG_SHAPE],"square") == 0) shape = SQUARE;
+		else if( strcmp(argv[ARG_SHAPE],"rising") == 0) shape = RISING;
+		else if( strcmp(argv[ARG_SHAPE],"falling") == 0) shape = FALLING;
+		else if( strcmp(argv[ARG_SHAPE],"triangle") == 0) shape = TRIANGLE;
 	}
 
 	// start up portsf
@@ -127,7 +124,23 @@ int main(int argc, char *argv[]) {
 	for(i=0; i<nbufs; i++) {
 		if(i==nbufs-1) nframes = remainder;
 		for(j=0; j<nframes;j++) {
-			outframe[j] = (float)(amp * sinetick(p_osc, freq));
+			//outframe[j] = (float)(amp * sqtick(p_osc, freq));
+			switch(shape) {
+				case SQUARE:
+					outframe[j] = (float)(amp * sqtick(p_osc, freq));
+					break;
+				case RISING:
+					outframe[j] = (float)(amp * risetick(p_osc, freq));
+					break;
+				case FALLING:
+					outframe[j] = (float)(amp * falltick(p_osc, freq));
+					break;
+				case TRIANGLE:
+					outframe[j] = (float)(amp * tritick(p_osc, freq));
+					break;
+				default: // SINE
+					outframe[j] = (float)(amp * sinetick(p_osc, freq));
+			}	
 		}
 		if(psf_sndWriteFloatFrames(ofd,outframe,nframes)!=nframes) {
 			printf("error: unable to write to outfile.\n");

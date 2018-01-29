@@ -18,5 +18,8 @@ OSCIL* oscil(void);
 OSCIL* new_oscil(uint32_t srate);
 double sinetick(OSCIL *p_osc, double freq);
 double sqtick(OSCIL *p_osc, double freq);
+double risetick(OSCIL *p_osc, double freq);
+double falltick(OSCIL *p_osc, double freq);
+double tritick(OSCIL *p_osc, double freq);
 
 //

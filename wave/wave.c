@@ -44,6 +44,7 @@ double sinetick(OSCIL *p_osc, double freq) {
 		p_osc->curfreq = freq;
 		p_osc->incr = p_osc->twopiovrsr * freq;
 	}
+
 	p_osc->curphase += p_osc->incr;
 	if(p_osc->curphase >= TWOPI)
 		p_osc->curphase -= TWOPI;
@@ -65,9 +66,73 @@ double sqtick(OSCIL *p_osc, double freq) {
 	} else {
 		val = -1.0;
 	}
+
 	p_osc->curphase += p_osc->incr;
-	if(p_osc->curphase >= TWOPI) p_osc->curphase -= TWOPI;
-	if(p_osc->curphase < 0.0) p_osc->curphase += TWOPI;
+	if(p_osc->curphase >= TWOPI) 
+		p_osc->curphase -= TWOPI;
+	if(p_osc->curphase < 0.0) 
+		p_osc->curphase += TWOPI;
+	
+	return val;
+}
+
+
+double falltick(OSCIL *p_osc, double freq) {
+	double val;
+	if(p_osc->curfreq != freq) {
+		// set only once!
+		p_osc->curfreq = freq;
+		p_osc->incr = p_osc->twopiovrsr * freq;
+	}
+	
+	val = 1.0 - 2.0 * (p_osc->curphase * (1.0/TWOPI));
+
+	p_osc->curphase += p_osc->incr;
+	if(p_osc->curphase >= TWOPI) 
+		p_osc->curphase -= TWOPI;
+	if(p_osc->curphase < 0.0) 
+		p_osc->curphase += TWOPI;
+	
+	return val;
+}
+
+
+double risetick(OSCIL *p_osc, double freq) {
+	double val;
+	if(p_osc->curfreq != freq) {
+		// set only once!
+		p_osc->curfreq = freq;
+		p_osc->incr = p_osc->twopiovrsr * freq;
+	}
+	
+	val = (2.0 * (p_osc->curphase * (1.0/TWOPI))) -1.0;
+
+	p_osc->curphase += p_osc->incr;
+	if(p_osc->curphase >= TWOPI) 
+		p_osc->curphase -= TWOPI;
+	if(p_osc->curphase < 0.0) 
+		p_osc->curphase += TWOPI;
+	
+	return val;
+}
+
+double tritick(OSCIL *p_osc, double freq) {
+	double val;
+	if(p_osc->curfreq != freq) {
+		// set only once!
+		p_osc->curfreq = freq;
+		p_osc->incr = p_osc->twopiovrsr * freq;
+	}
+	
+	val = (2.0 * (p_osc->curphase * (1.0/TWOPI))) -1.0;
+	if(val < 0.0) val = -val;
+	val = 2.0*(val - 0.5);
+
+	p_osc->curphase += p_osc->incr;
+	if(p_osc->curphase >= TWOPI) 
+		p_osc->curphase -= TWOPI;
+	if(p_osc->curphase < 0.0) 
+		p_osc->curphase += TWOPI;
 	
 	return val;
 }
