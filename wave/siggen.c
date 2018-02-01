@@ -33,15 +33,21 @@ int main(int argc, char *argv[]) {
 	uint32_t outframes; // frames written to file
 	uint32_t remainder; // remainder in last frame buffer
 
-	uint8_t shape = SINE;
+	// pointer to tickfunction
+	tickfunc tick = sinetick;
 
 	// oscilator
 	OSCIL *p_osc; // sinus oscilator properties
 
 	if(argc < ARG_NARGS-1) {
-		printf("\terror: wrong number of arguments, got %i arguments, expected %i.\n"
+		printf("\terror:\n"
+				"\t\twrong number of arguments, got %i arguments, expected %i\n"
 			"\tusage:\n"
-			"\t%s outfile duration samplerate amplification frequency [shape]\n\taborting...\n", argc-1, ARG_NARGS-2, argv[ARG_PROGNAME]);
+				"\t\t%s outfile duration samplerate amplification frequency [shape]\n"
+			"\tshapes:\n"
+				"\t\tsine (default)\n\t\tsquare\n\t\trising\n\t\tfalling\n\t\ttriangle\n"
+			"\taborting...\n", 
+			argc-1, ARG_NARGS-2, argv[ARG_PROGNAME]);
 		err++;
 		return err;
 	}
@@ -74,13 +80,15 @@ int main(int argc, char *argv[]) {
 		return err;
 	}
 
+
 	// check if we got optional arguments
 	if(argc > ARG_NARGS-1) {
-		if( strcmp(argv[ARG_SHAPE],"sine") == 0) shape = SINE;
-		else if( strcmp(argv[ARG_SHAPE],"square") == 0) shape = SQUARE;
-		else if( strcmp(argv[ARG_SHAPE],"rising") == 0) shape = RISING;
-		else if( strcmp(argv[ARG_SHAPE],"falling") == 0) shape = FALLING;
-		else if( strcmp(argv[ARG_SHAPE],"triangle") == 0) shape = TRIANGLE;
+		if( strcmp(argv[ARG_SHAPE],"sine") == 0)          tick = sinetick;
+		else if( strcmp(argv[ARG_SHAPE],"square") == 0)   tick = sqtick;
+		else if( strcmp(argv[ARG_SHAPE],"rising") == 0)   tick = risetick;
+		else if( strcmp(argv[ARG_SHAPE],"falling") == 0)  tick = falltick;
+		else if( strcmp(argv[ARG_SHAPE],"triangle") == 0) tick = tritick;
+		else printf("warning:\n\tunknown wave shape, setting shape to default sine wave\n");
 	}
 
 	// start up portsf
@@ -125,22 +133,7 @@ int main(int argc, char *argv[]) {
 		if(i==nbufs-1) nframes = remainder;
 		for(j=0; j<nframes;j++) {
 			//outframe[j] = (float)(amp * sqtick(p_osc, freq));
-			switch(shape) {
-				case SQUARE:
-					outframe[j] = (float)(amp * sqtick(p_osc, freq));
-					break;
-				case RISING:
-					outframe[j] = (float)(amp * risetick(p_osc, freq));
-					break;
-				case FALLING:
-					outframe[j] = (float)(amp * falltick(p_osc, freq));
-					break;
-				case TRIANGLE:
-					outframe[j] = (float)(amp * tritick(p_osc, freq));
-					break;
-				default: // SINE
-					outframe[j] = (float)(amp * sinetick(p_osc, freq));
-			}	
+			outframe[j] = (float)(amp * tick(p_osc, freq));
 		}
 		if(psf_sndWriteFloatFrames(ofd,outframe,nframes)!=nframes) {
 			printf("error: unable to write to outfile.\n");
@@ -149,7 +142,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-
+printf("\tdone rendering %.2lf seconds of %s audio to file %s\n", duration, argv[ARG_SHAPE], argv[ARG_OUTFILE]);
 
 exit:
 	if(outframe) free(outframe);

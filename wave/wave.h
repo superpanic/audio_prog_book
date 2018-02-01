@@ -16,6 +16,10 @@ typedef struct t_oscil {
 void oscil_init(OSCIL *osc, uint32_t srate);
 OSCIL* oscil(void);
 OSCIL* new_oscil(uint32_t srate);
+
+// define pointer type to tickfunctions
+typedef double (*tickfunc)(OSCIL *osc, double);
+// tickfunctions
 double sinetick(OSCIL *p_osc, double freq);
 double sqtick(OSCIL *p_osc, double freq);
 double risetick(OSCIL *p_osc, double freq);
