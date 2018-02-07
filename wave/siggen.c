@@ -38,10 +38,15 @@ int main(int argc, char *argv[]) {
 	// pointer to tickfunction
 	tickfunc tick = sinetick;
 
-	// breakpoint variables
-	BRKSTREAM *ampstream = NULL;
+	// amp breakpoint variables
+	BRKSTREAM *ampstream = NULL;	
 	FILE *fp_amp = NULL;
 	uint32_t brkamp_size = 0;
+
+	// freq breakpoint variables
+	BRKSTREAM *freqstream = NULL;
+	FILE *fp_freq = NULL;
+	uint32_t brkfreq_size = 0;
 
 	// oscilator
 	OSCIL *p_osc = NULL; // sinus oscilator properties
@@ -75,14 +80,6 @@ int main(int argc, char *argv[]) {
 		return err;
 	}
 
-	freq = atof(argv[ARG_FREQ]);
-	if(freq <= 0) {
-		printf("\terror: got freq value at %lf. needs to be higher than 0.\n\taborting...\n", freq);
-		err++;
-		return err;
-	}
-
-
 	// check if we got optional arguments
 	if(argc > ARG_NARGS-1) {
 		if( strcmp(argv[ARG_SHAPE],"sine") == 0)          tick = sinetick;
@@ -113,14 +110,48 @@ int main(int argc, char *argv[]) {
 		goto exit;
 	}
 
+	// try to open the frequency breakpoint file
+	freq = 0.0;
+	fp_freq = fopen(argv[ARG_FREQ], "r");
+	if(fp_freq == NULL) {
+		
+		// exercise 2.5.7 (use strtod instead of atof)
+		char *ptr;
+		freq = strtod(argv[ARG_FREQ], &ptr);
+		if(ptr == argv[ARG_FREQ]) {
+			printf("error: did not find a file name or number in %s\n", ptr);
+			err++;
+			goto exit;
+		}
+		// freq = atof(argv[ARG_FREQ]);
 
+		if(freq <= 0) {
+			printf("\terror: got freq value at %lf. needs to be higher than 0.\n\taborting...\n", freq);
+			err++;
+			goto exit;
+		} else {
+			printf("freq is set to %lf\n", freq);
+		}
+	}
+	
+	if(fp_freq) {
+		printf("\tusing break point file %s to modulate the frequency\n", argv[ARG_FREQ]);
+		freqstream = bps_newstream(fp_freq, props.srate, &brkfreq_size);
+
+		double min, max;
+		bps_minmax(freqstream->points, freqstream->npoints, &min, &max);
+		if( min <= 0.0 ) {
+			printf("error: breakpoint values are out of range: %lf (must be more than 0.0)\n", min);
+			err++;
+			goto exit;
+		}
+		printf("min: %lf, max: %lf\n", min, max);
+	}
+	
+	// try to open the amplification breakpoint file
 	amp = 0.0;
-	// try to open the breakpoint file
 	fp_amp = fopen(argv[ARG_AMP], "r");
 	if(fp_amp == NULL) {
-		//printf("error: failed to open breakpoint file.\n");
-		//err++;
-		//return err;
 		amp = atof(argv[ARG_AMP]);
 		if(amp <= 0) {
 			printf("\terror: got amp value at %lf. this would result in silent audio.\n\taborting...\n", amp);
@@ -131,7 +162,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-// this makes program fail at line 125 above – even if the if() eval to false!
 	if(fp_amp) {
 		printf("\tusing break point file %s to modulate amplification\n", argv[ARG_AMP]);
 		ampstream = bps_newstream(fp_amp, props.srate, &brkamp_size);
@@ -170,9 +200,8 @@ int main(int argc, char *argv[]) {
 	for(i=0; i<nbufs; i++) {
 		if(i==nbufs-1) nframes = remainder;
 		for(j=0; j<nframes;j++) {
-			//outframe[j] = (float)(amp * sqtick(p_osc, freq));
-			//outframe[j] = (float)(amp * tick(p_osc, freq));
-			if(fp_amp) amp = bps_tick(ampstream);
+			if(ampstream) amp = bps_tick(ampstream);
+			if(freqstream) freq = bps_tick(freqstream);
 			outframe[j] = (float)(amp * tick(p_osc,freq));
 		}
 		if(psf_sndWriteFloatFrames(ofd,outframe,nframes)!=nframes) {
@@ -188,6 +217,15 @@ exit:
 	if(outframe) free(outframe);
 	if(p_osc) free(p_osc);
 	if(ofd >= 0) psf_sndClose(ofd);
+	if(freqstream) {
+		bps_freepoints(freqstream);
+		free(freqstream);
+	}
+	if(fp_freq) {
+		if(fclose(fp_freq)) {
+			printf("error: failed to close breakpoint file %s\n", argv[ARG_FREQ]);
+		}
+	}
 	if(ampstream) {
 		bps_freepoints(ampstream);
 		free(ampstream);
