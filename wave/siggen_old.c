@@ -1,12 +1,10 @@
 /* siggen.c */
-
 #include <stdint.h>
 #include <portsf.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "wave.h"
-#include "breakpoints.h"
 
 #define NFRAMES (1024)
 
@@ -38,24 +36,17 @@ int main(int argc, char *argv[]) {
 	// pointer to tickfunction
 	tickfunc tick = sinetick;
 
-	// breakpoint variables
-	BRKSTREAM *ampstream = NULL;
-	FILE *fp_amp = NULL;
-	uint32_t brkamp_size = 0;
-
 	// oscilator
-	OSCIL *p_osc = NULL; // sinus oscilator properties
+	OSCIL *p_osc; // sinus oscilator properties
 
 	if(argc < ARG_NARGS-1) {
-		printf("\t%s produces a sound file based on user arguments. default is a sine wave, but optional wave shapes are available.\n", argv[ARG_PROGNAME]);
 		printf("\terror:\n"
 				"\t\twrong number of arguments, got %i arguments, expected %i\n"
 			"\tusage:\n"
-				"\t\t\033[7m%s outfile duration samplerate amplification frequency [shape]\033[0m\n"
-				"\t\t(amplification can be either a breakpoint file or a float > 0.0 and <= 1.0)\n"
+				"\t\t%s outfile duration samplerate amplification frequency [shape]\n"
 			"\tshapes:\n"
 				"\t\tsine (default)\n\t\tsquare\n\t\trising\n\t\tfalling\n\t\ttriangle\n"
-			"\taborting...\n", 
+			"\taborting...\n",
 			argc-1, ARG_NARGS-2, argv[ARG_PROGNAME]);
 		err++;
 		return err;
@@ -71,6 +62,13 @@ int main(int argc, char *argv[]) {
 	srate = atoi(argv[ARG_SRATE]);
 	if(srate <= 0) {
 		printf("\terror: got sample rate %i, sample rate need to be more than 0.\n\taborting...\n", srate);
+		err++;
+		return err;
+	}
+
+	amp = atof(argv[ARG_AMP]);
+	if(amp <= 0) {
+		printf("\terror: got amp value at %lf. this would result in silent audio.\n\taborting...\n", amp);
 		err++;
 		return err;
 	}
@@ -108,46 +106,10 @@ int main(int argc, char *argv[]) {
 
 	ofd = psf_sndCreate(argv[ARG_OUTFILE], &props, 0, 0, PSF_CREATE_RDWR);
 	if(ofd < 0) {
-		printf("\terror %i: unable to create outfile '%s'\n\taborting...\n", ofd, argv[ARG_OUTFILE]);
+		printf("\terror: unable to create outfile %s\n\taborting...\n", argv[ARG_OUTFILE]);
 		err++;
 		goto exit;
 	}
-
-
-	amp = 0.0;
-	// try to open the breakpoint file
-	fp_amp = fopen(argv[ARG_AMP], "r");
-	if(fp_amp == NULL) {
-		//printf("error: failed to open breakpoint file.\n");
-		//err++;
-		//return err;
-		amp = atof(argv[ARG_AMP]);
-		if(amp <= 0) {
-			printf("\terror: got amp value at %lf. this would result in silent audio.\n\taborting...\n", amp);
-			err++;
-			goto exit;
-		} else {
-			printf("amp is set to %lf\n", amp);
-		}
-	}
-
-// this makes program fail at line 125 above – even if the if() eval to false!
-	if(fp_amp) {
-		printf("\tusing break point file %s to modulate amplification\n", argv[ARG_AMP]);
-		ampstream = bps_newstream(fp_amp, props.srate, &brkamp_size);
-
-		double min, max;
-		bps_minmax(ampstream->points, ampstream->npoints, &min, &max);
-		if( min > 1.0 || min < 0.0 || max > 1.0 || max < 0.0 ) {
-			printf(	"error: breakpoints values are out of range (0.0-1.0)\n"
-				"\tmin: %lf, max: %lf\n", min, max);
-			err++;
-			goto exit;
-		}
-
-		printf("min: %lf, max: %lf\n", min, max);
-	}
-
 
 	// create the oscilator struct
 	p_osc = new_oscil(props.srate);
@@ -171,9 +133,7 @@ int main(int argc, char *argv[]) {
 		if(i==nbufs-1) nframes = remainder;
 		for(j=0; j<nframes;j++) {
 			//outframe[j] = (float)(amp * sqtick(p_osc, freq));
-			//outframe[j] = (float)(amp * tick(p_osc, freq));
-			if(fp_amp) amp = bps_tick(ampstream);
-			outframe[j] = (float)(amp * tick(p_osc,freq));
+			outframe[j] = (float)(amp * tick(p_osc, freq));
 		}
 		if(psf_sndWriteFloatFrames(ofd,outframe,nframes)!=nframes) {
 			printf("error: unable to write to outfile.\n");
@@ -188,15 +148,6 @@ exit:
 	if(outframe) free(outframe);
 	if(p_osc) free(p_osc);
 	if(ofd >= 0) psf_sndClose(ofd);
-	if(ampstream) {
-		bps_freepoints(ampstream);
-		free(ampstream);
-	}
-	if(fp_amp) {
-		if(fclose(fp_amp)) {
-			printf("error: failed to close breakpoint file %s\n", argv[ARG_AMP]);
-		}
-	}
 	psf_finish();
 
 	return err;

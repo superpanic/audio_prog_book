@@ -79,21 +79,21 @@ typedef enum {
 
 /* provisional stab at error codes */
 enum {
-	PSF_E_NOERROR		= 0,
-	PSF_E_CANT_OPEN		= -1,
-	PSF_E_CANT_CLOSE	= -2,
-	PSF_E_CANT_WRITE	= -3,
-	PSF_E_CANT_READ		= -4,
-	PSF_E_NOT_WAVE		= -5,
-	PSF_E_BAD_TYPE		= -6,
-	PSF_E_BAD_FORMAT	= -7,
-	PSF_E_UNSUPPORTED	= -8,
-	PSF_E_NOMEM			= -9,
+	PSF_E_NOERROR		=   0,
+	PSF_E_CANT_OPEN		=  -1,
+	PSF_E_CANT_CLOSE	=  -2,
+	PSF_E_CANT_WRITE	=  -3,
+	PSF_E_CANT_READ		=  -4,
+	PSF_E_NOT_WAVE		=  -5,
+	PSF_E_BAD_TYPE		=  -6,
+	PSF_E_BAD_FORMAT	=  -7,
+	PSF_E_UNSUPPORTED	=  -8,
+	PSF_E_NOMEM		=  -9,
 	PSF_E_BADARG		= -10,
 	PSF_E_CANT_SEEK		= -11,
-	PSF_E_TOOMANYFILES  = -12,
-	PSF_E_FILE_READONLY = -13,
-	PSF_E_SEEK_BEYOND_EOF = -14
+	PSF_E_TOOMANYFILES  	= -12,
+	PSF_E_FILE_READONLY 	= -13,
+	PSF_E_SEEK_BEYOND_EOF 	= -14
 };
 
 #define NUM_SPEAKER_POSITIONS (18)

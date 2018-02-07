@@ -1,15 +1,15 @@
 # makefile for sfenv
 CC = gcc
 EXE = siggen
-OBJS = $(EXE).o wave.o
-CFILES = $(EXE).c wave.c
-CFLAGS = -c -I ../include
+OBJS = $(EXE).o wave.o breakpoints.o
+CFILES = $(EXE).c wave.c breakpoints.c
+CFLAGS = -c -Wall -I ../include
 LFLAGS = -lportsf -lm
 
 build: $(OBJS)
 	$(CC) $(OBJS) $(LFLAGS) -o $(EXE) $(LFLAGS)
 
-sfpan.o: $(CFILES)
+$(EXE).o: $(CFILES)
 	$(CC) $(CFLAGS) $(EXE).c
 
 clean:

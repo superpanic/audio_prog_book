@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include "breakpoints.h"
 
 void oscil_init(OSCIL *osc, uint32_t srate) {
 	if(osc == NULL) return;
@@ -135,4 +136,34 @@ double tritick(OSCIL *p_osc, double freq) {
 		p_osc->curphase += TWOPI;
 	
 	return val;
+}
+
+double bps_tick(BRKSTREAM* stream) {
+	double thisval;
+	double frac;
+	// beyond end of brkdata?
+	if(stream->more_points == 0) return stream->rightpoint.value;
+	if(stream->width == 0.0) { 
+		thisval = stream->rightpoint.value;
+	} else {
+		// get value from this span using linear interpolation
+		frac = (stream->curpos - stream->leftpoint.time)/stream->width;
+		thisval = stream->leftpoint.value+(stream->height*frac);
+	}
+	// move up ready for next sample
+	stream->curpos += stream->incr;
+	if(stream->curpos > stream->rightpoint.time) {
+		// need to go to next span
+		stream->ileft++; 
+		stream->iright++;
+		if(stream->iright < stream->npoints) {
+			stream->leftpoint = stream->points[stream->ileft];
+			stream->rightpoint = stream->points[stream->iright];
+			stream->width = stream->rightpoint.time - stream->leftpoint.time;
+			stream->height = stream->rightpoint.value - stream->leftpoint.value;
+		} else {
+			stream->more_points = 0;
+		}
+	}
+	return thisval;
 }

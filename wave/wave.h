@@ -1,5 +1,9 @@
 /* wave.h */
+#ifndef _WAVE_
+#define _WAVE_
+
 #include <stdint.h>
+#include "breakpoints.h"
 
 #ifndef M_PI
 #define M_PI (3.1415926535897932)
@@ -25,5 +29,6 @@ double sqtick(OSCIL *p_osc, double freq);
 double risetick(OSCIL *p_osc, double freq);
 double falltick(OSCIL *p_osc, double freq);
 double tritick(OSCIL *p_osc, double freq);
+double bps_tick(BRKSTREAM* stream);
 
-//
+#endif
