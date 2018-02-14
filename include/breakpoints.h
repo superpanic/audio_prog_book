@@ -1,5 +1,5 @@
-#ifndef _BREAKPOINT_
-#define _BREAKPOINT_
+#ifndef __BREAKPOINT__
+#define __BREAKPOINT__
 
 #include <stdio.h>
 #include <stdint.h>

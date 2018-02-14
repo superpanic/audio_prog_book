@@ -4,5 +4,10 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"portsf.h": "c",
+			"breakpoints.h": "c"
+		}
+	}
 }
