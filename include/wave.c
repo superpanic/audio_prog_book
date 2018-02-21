@@ -20,10 +20,9 @@ OSCIL* oscil(void) {
 	return osc;
 }
 
-OSCIL* new_oscil(uint32_t srate) {
+OSCIL *new_oscil(uint32_t srate) {
 	/* use like this */
 	// OSCIL *osc = new_oscil(41100);
-
 	OSCIL* p_osc;
 	p_osc = (OSCIL*) malloc(sizeof *p_osc);
 	if(p_osc == NULL) return NULL;
@@ -32,6 +31,13 @@ OSCIL* new_oscil(uint32_t srate) {
 	p_osc->curphase = 0.0;
 	p_osc->incr = 0.0;
 	return p_osc;
+}
+
+OSCIL *new_oscilp(uint32_t srate, double phase) {
+	OSCIL *op;
+	op = new_oscil(srate);
+	op->curphase = TWOPI * phase;
+	return op;
 }
 
 double sinetick(OSCIL *p_osc, double freq) {

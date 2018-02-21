@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
 	double amp;       // amplification (0.0-1.0)
 	double freq;      // frequency (concert A = 440)
 	uint8_t wavetype;
+	double phase = 0.0;
 
 	// oscilators
 	uint32_t noscs = 0;       // number of oscilators
@@ -57,7 +58,7 @@ int main(int argc, char *argv[]) {
 	if(argc < ARG_NARGS) {
 		printf("\tproduces a sound file based on user arguments:\n"
 			"\t\t\033[7m%s filename duration samplerate amplification frequency wavetype noscilators\033[0m\n"
-			"aborting ...",
+			"aborting ...\n",
 			argv[ARG_PROGNAME]);
 		err++;
 		return err;
@@ -91,7 +92,7 @@ int main(int argc, char *argv[]) {
 	props.srate = srate;
 	props.chans = 1;
 	props.samptype = PSF_SAMP_16;
-	props.format = PSF_WAVE_EX; // TODO: also check for filename ending with .wav
+	props.format = PSF_WAVE_EX; // will generate memory -9 error if not set to wav, TODO: check for filename ending with .wav (or automatically add .wav to filename)
 	props.chformat = STDWAVE;
 
 	ofd = psf_sndCreate(argv[ARG_OUTFILE], &props, 0, 0, PSF_CREATE_RDWR);
@@ -113,11 +114,11 @@ int main(int argc, char *argv[]) {
 		amp = strtod(argv[ARG_AMP], &ptr);
 		if(ptr == argv[ARG_AMP]) {
 			printf("error: did not find a file name or number in %s", ptr);
+			err++;
+			goto exit;
 		}
-		err++;
-		goto exit;
 	} else {
-		printf("\tusing breakpoint file %s to modulate the amplification\n", argv[ARG_AMP]);
+		printf("\n\tusing breakpoint file %s to modulate the amplification\n", argv[ARG_AMP]);
 		ampstream = bps_newstream(fp_amp, props.srate, &brkamp_size);
 		double min;
 		double max;
@@ -225,6 +226,7 @@ int main(int argc, char *argv[]) {
 				freqfac += 2.0;
 				ampadjust += ampfac;
 			}
+			phase = 0.25; // set cos phase, to make a clean triangle shape
 			break;
 		case(WAVE_SAWUP):
 		case(WAVE_SAWDOWN):
@@ -240,7 +242,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	for(i=0; i<noscs; i++) {
-		printf("ampadjust: %lf\n", ampadjust);
+		printf("\tampadjust: %lf\n", ampadjust);
 		if(ampadjust != 0) oscamps[i] /= ampadjust;
 		else oscamps[i] = 0.0;
 	}
@@ -261,7 +263,7 @@ int main(int argc, char *argv[]) {
 
 	// and then create each OSCIL
 	for(i=0; i<noscs; i++) {
-		oscs[i] = new_oscil(props.srate);
+		oscs[i] = new_oscilp(props.srate, phase);
 		if(oscs[i] == NULL) {
 			printf("error: out of memory");
 			err++;
@@ -281,14 +283,6 @@ int main(int argc, char *argv[]) {
 				val += oscamps[k] * sinetick(oscs[k], freq * oscfreqs[k]);
 			}
 			outframe[j] = (float)(val * amp);
-			/*
-			if(j%500==0) printf("ouframe[%i] = %.2lf"
-					       "\tval = %.2lf"
-					       "\tamp = %.2lf"
-					      "\tfreq = %.2lf"
-					"\toscamps[0] = %.2lf"
-					"\toscfreq[0] = %.2lf\n", j, outframe[j], val, amp, freq, oscamps[0], oscfreqs[0]);
-			*/
 		}
 
 		if(psf_sndWriteFloatFrames(ofd,outframe,nframes)!=nframes) {
@@ -299,7 +293,7 @@ int main(int argc, char *argv[]) {
 	}
 	printf("\n");
 
-	printf("\n\tsuccessfully rendering %.2lf seconds of audio\n" 
+	printf("\tsuccessfully rendering %.2lf seconds of audio\n" 
 		"\tto file: %s\n" 
 		"\tusing: %i oscilators\n"
 		"\twith wavetype: %s\n\n", duration, argv[ARG_OUTFILE], noscs, wave_names[wavetype]);
