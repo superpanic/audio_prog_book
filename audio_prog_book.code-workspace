@@ -7,7 +7,8 @@
 	"settings": {
 		"files.associations": {
 			"portsf.h": "c",
-			"breakpoints.h": "c"
+			"breakpoints.h": "c",
+			"common.h": "c"
 		}
 	}
 }

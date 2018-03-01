@@ -8,7 +8,10 @@
 #ifndef M_PI
 #define M_PI (3.1415926535897932)
 #endif
+
+#ifndef TWOPI
 #define TWOPI (2.0 * M_PI)
+#endif
 
 typedef struct t_oscil {
 	double twopiovrsr; /* to hold a constant value 2PI/samplerate */
