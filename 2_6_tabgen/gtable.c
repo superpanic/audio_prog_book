@@ -29,44 +29,74 @@ GTABLE *new_sine(uint32_t length) {
 
 GTABLE *new_triangle(uint32_t length, uint32_t nharms) {
 	uint32_t i, j;
-	double step, amp, maxamp;
-	double *table;
-	uint32_t harmonic = 1;
-	GTABLE *gtable = NULL;
+	double step, amp;
+	GTABLE *gtable;
+	int harmonic = 1;
 
-	if(length == 0 || nharms == 0 || nharms >= length/2) return NULL;
-
-	gtable = (GTABLE *) malloc(sizeof(GTABLE));
+	if(length==0 || nharms == 0 || nharms >= length/2) return NULL;
+	gtable = new_gtable(length);
 	if(gtable == NULL) return NULL;
-
-	table = (double *) malloc( (length+1) * sizeof(double) ); // +1 for the guard point
-
-	if(table == NULL) {
-		free(gtable);
-		return NULL;
-	}
-	// reset all to 0.0
-	for(i=0; i<length; i++) table[i] = 0.0;
-	step = TWOPI / length;
-	
-	// generate the triangle wave
-	for(i=0;i<nharms;i++) {
-		amp = 1.0 / (harmonic * harmonic);
-		for(j=0;j<length;j++) table[j] += amp * cos(step * harmonic * j);
+	step = TWOPI/length;
+	for(i=0; i<nharms; i++) {
+		amp = 1.0 / (harmonic*harmonic);
+		for(j=0; j<length; j++) gtable->table[j] += amp * cos(step*harmonic*j);
 		harmonic += 2;
 	}
-	// normalize table
-	for(i=0; i<length; i++) {
-		amp = fabs(table[i]);
-		if(maxamp < amp) maxamp = amp;
-	}
-	maxamp = 1.0 / maxamp;
-	for(i=0; i<length; i++) table[i] *= maxamp;
-	table[i] = table[0]; // guard point
-	gtable->length = length;
-	gtable->table = table;
+	norm_gtable(gtable);
 	return gtable;
+}
 
+GTABLE *new_square(uint32_t length, uint32_t nharms) {
+	uint32_t i, j;
+	double step, amp;
+	GTABLE *gtable;
+	int harmonic = 1;
+
+	if(length == 0 || nharms == 0 || nharms >= length/2) 
+		return NULL;
+	
+	gtable = new_gtable(length);
+
+	if(gtable == NULL) 
+		return NULL;
+
+	step = TWOPI / length;
+	for(i=0; i<nharms; i++) {
+		amp = 1.0/harmonic;
+
+		for(j=0; j<length;j++) 
+			gtable->table[j] += amp * sin(step*harmonic * j);
+		
+		harmonic+=2;
+	}
+	norm_gtable(gtable);
+	return gtable;
+}
+
+GTABLE *new_saw(uint32_t length, uint32_t nharms, int up) {
+	uint32_t i, j;
+	double step, val, amp = 1.0;
+	GTABLE *gtable;
+	int harmonic = 1;
+
+	if(length == 0 || nharms == 0 || nharms >= length/2)
+		return NULL;
+
+	gtable = new_gtable(length);
+
+	if(gtable == NULL)
+		return NULL;
+	
+	step = TWOPI / length;
+	if(up) amp = -1;
+	for(i=0; i<nharms; i++) {
+		val = amp/harmonic;
+		for(j=0; j<length; j++)
+			gtable->table[j] += val * sin(step*harmonic * j);
+		harmonic++;
+	}
+	norm_gtable(gtable);
+	return gtable;
 }
 
 // new generic gtable
@@ -127,7 +157,6 @@ OSCILT *new_oscilt(double srate, const GTABLE* gtable, double phase) {
 
 double tabtick(OSCILT* p_osc, double freq) {
 	int index = (int) (p_osc->osc.curphase);
-	double val;
 	double dtablen = p_osc->dtablen;
 	double curphase = p_osc->osc.curphase;
 	double *table = p_osc->gtable->table;

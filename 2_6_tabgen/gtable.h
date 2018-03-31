@@ -18,8 +18,13 @@ typedef struct t_tab_oscil {
 	double sizeovrsr;
 } OSCILT;
 
+enum {SAW_DOWN, SAW_UP};
+
 GTABLE *new_sine(uint32_t length);
 GTABLE *new_triangle(uint32_t length, uint32_t nharms);
+GTABLE *new_square(uint32_t length, uint32_t nharms);
+GTABLE *new_saw(uint32_t length, uint32_t nharms, int up);
+
 GTABLE *new_gtable(uint32_t length);
 void gtable_free(GTABLE** gtable);
 
