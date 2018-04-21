@@ -8,7 +8,7 @@
 
 void SYNTAX() 
 {
-	printf("syntax is:\n\tplayer2 [tTIME] [-dDUR] filename\n");
+	printf("syntax is:\n\tplayer2 [-tTIME] [-dDUR] filename\n");
 }
 
 #define FRAME_BLOCK_LEN 512
@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 				timflag=1;
 				starttime = atof(arg_option);
 			} else {
-				printf("error: -t flag set without specifying a start time in seconds.\n");
+				printf("\terror: -t flag set without specifying a start time in seconds.\n");
 				SYNTAX();
 				err++;
 				return err;
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 				durflag=1;
 				dur = atof(arg_option);
 			} else {
-				printf("error: -d flag set without specifying a duration in seconds\n");
+				printf("\terror: -d flag set without specifying a duration in seconds\n");
 				SYNTAX();
 				err++;
 				return err;
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 	}
 
 	if(argc < 2) {
-		printf("error: bad command line arguments\n");
+		printf("\terror: bad command line arguments\n");
 		SYNTAX();
 		err++;
 		return err;
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 	sfd = psf_sndOpen(argv[arg_index], &props, 0);
 
 	if(sfd < 0) {
-		printf("an error occured opening audio file\n");
+		printf("\tan error occured opening audio file\n");
 		err++;
 		goto end;
 	}
@@ -83,10 +83,17 @@ int main(int argc, char **argv)
 	length = psf_sndSize(sfd);
 	printf("duration: %f\n", (float)length / (float)props.srate);
 	if(timflag)
-		counter = (uint32_t) (starttime * props.srate / (float) props.srate);
+		counter = (uint32_t) (starttime * props.srate);
 	else
 		counter = 0; // beginning of file
-	
+
+	if(timflag && counter >= length) {
+		printf("\taborting: time set at or beyond end of file\n");
+		goto end;
+	}
+
+	printf("counter: %d\n", counter);
+
 	if (durflag) {
 		endpoint = (u_int32_t) (dur * props.srate + counter);
 		endpoint = (endpoint < length) ? endpoint : length;
@@ -96,7 +103,7 @@ int main(int argc, char **argv)
 	}
 
 	if (props.chans > 2) {
-		printf("invalid number of channels in audio file, "
+		printf("\tinvalid number of channels in audio file, "
 		"max 2 chanels allowed\n");
 		goto end;
 	}
