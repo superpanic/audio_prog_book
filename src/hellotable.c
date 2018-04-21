@@ -1,7 +1,11 @@
 /* hellotable.c */
 #include <stdio.h>
 #include <math.h>
-#include "hellotable.h"
+#include <stdint.h>
+#include <portaudio.h>
+#include <tinyAudioLib.h>
+
+#define REALTIME
 
 #define SAMPLING_RATE 44100
 #define PI 3.14159265
@@ -20,7 +24,7 @@ void fill_sine() {
 
 void fill_square() {
 	int j;
-	for(j = 0; j<TABLE_LEN/2; J++) table[j] = 1;
+	for(j = 0; j<TABLE_LEN/2; j++) table[j] = 1;
 	for(j=TABLE_LEN/2; j<TABLE_LEN; j++) table[j] = -1;
 }
 
@@ -47,13 +51,71 @@ void fill_triangle() {
 
 // TODO: add code for output...
 
+#if defined(REALTIME) // uses tiny audio library
+	#include "tinyAudioLib.h"
+#elif defined(BINARY_RAW_FILE)
+	FILE *file;
+#elif defined(WAVE_FILE) // uses portsf library
+	#include "portsf.h"
+	PSF_PROPS props;
+	int ofd;
+#endif
 
+void outSample(float sample) {
+	#if defined(REALTIME) // uses tiny audio library
+		outSampleMono(sample);
+	#elif defined(BINARY_RAW_FILE)
+		uint16_t isample = (uint16_t) (sample * 32000);
+		fwrite(&isample, sizeof(uint16_t), 1, file);
+	#elif defined(WAVE_FILE) // uses portsf library
+		psf_sndWriteFloatFrames(ofd, &sample, 1);
+	#else // standart output
+		printf("%f\n", sample);
+	#endif
+}
 
+void init() {
+	#if defined(REALTIME) // uses tiny audio library
+		tinyInit();
+	#elif defined(BINARY_RAW_FILE)
+		file = fopen("hellotable.raw", "wb");
+	#elif defined(WAVE_FILE) // uses portsf library
+		props.srate = 44100;
+		props.chans = 1;
+		props.samptype = PSF_SAMP_16;
+		props.format = PSF_STDWAVE;
+		props.chformat = STDWAVE;
+		psf_init();
+		ofd = psf_sndCreate("hellotable.wav", &props, 0, 0, PSF_CREATE_RDWR);
+	#else // standard output
+		printf("\n. . .nothing to initialize . . .\n");
+	#endif
+}
+
+void cleanup() {
+	printf("cleaning up. . .\n");
+	#if defined(REALTIME) // uses tiny audio library
+		tinyExit();
+	#elif defined(BINARY_RAW_FILE)
+		fclose();
+	#elif defined(WAVE_FILE)
+		{
+			int err1, err2;
+			err1 = psf_sndClose(ofd);
+			err2 = psf_finish();
+			if(err1 || err2) {
+				printf("\twarning: an error occurred\n" "\twriting WAVE_FILE file\n");
+			}
+		}
+	#else // standard output
+		printf("nothing to clean up. . .\n");
+	#endif
+}
 
 int main(int argc, char *argv[]) {
 	int err = 0;
 	int waveform;
-	const float frequency, duration;
+	float frequency, duration;
 	printf("Type the frequency of the wave to output in Hz, and press ENTER: ");
 	scanf("%f", &frequency);
 
