@@ -7,6 +7,9 @@ CC = gcc
 
 all: hellotable player
 
+helloring:
+	$(CC) -o bin/helloring src/helloring.c $(INCLUDES) $(LIBS)
+
 hellotable:	
 	$(CC) -o bin/hellotable src/hellotable.c $(INCLUDES) $(LIBS) 
 
